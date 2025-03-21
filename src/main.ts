@@ -2,13 +2,17 @@ import { app, BrowserWindow, session } from 'electron';
 import path from 'path';
 import axios from 'axios';
 import dotenv from 'dotenv';
+import AuthService from './authService';
 dotenv.config();
+import { ipcMain } from 'electron';
 let mainWindow: BrowserWindow | null;
 
 const KEYCLOAK_URL = process.env.KEYCLOAK_URL!;
 const CLIENT_ID = process.env.CLIENT_ID!;
 const CLIENT_SECRET = process.env.CLIENT_SECRET!;
 const REDIRECT_URI = process.env.REDIRECT_URI!;
+
+const authService = new AuthService(KEYCLOAK_URL, CLIENT_ID, CLIENT_SECRET, REDIRECT_URI);
 
 function createWindow() {
     mainWindow = new BrowserWindow({
@@ -22,41 +26,42 @@ function createWindow() {
     });
 
     // Redireciona para a página de login do Keycloak
-    mainWindow.loadURL(`${KEYCLOAK_URL}/auth?client_id=${CLIENT_ID}&redirect_uri=${REDIRECT_URI}&response_type=code`);
-    mainWindow.webContents.openDevTools();
+    mainWindow.loadURL(authService.getLoginUrl());
+    // mainWindow.webContents.openDevTools();
 
     mainWindow.webContents.on('will-redirect', async (event, url) => {
         if (url.startsWith(REDIRECT_URI)) {
             event.preventDefault();
 
-            // Extrai o código de autorização da URL
             const code = new URL(url).searchParams.get('code');
             if (code) {
-                console.log("Authorization Code:", code);
+                // console.log("Authorization Code:", code);
 
-                // Troca o código de autorização por um token de acesso
                 try {
-                    const response = await axios.post(
-                        `${KEYCLOAK_URL}/token`,
-                        new URLSearchParams({
-                            grant_type: 'authorization_code',
-                            client_id: CLIENT_ID,
-                            client_secret: CLIENT_SECRET,
-                            redirect_uri: REDIRECT_URI,
-                            code: code
-                        }).toString(),
-                        {
-                            headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
-                        }
-                    );
+                    // Troca o código por um token
+                    await authService.exchangeCodeForToken(code);
 
-                    const { access_token } = response.data;
-                    console.log("Access Token:", access_token);
+                    // Valida o token
+                    const tokenInfo = await authService.introspectToken();
+                    if (tokenInfo) {
 
-                    // Carrega a interface principal após a autenticação
-                    mainWindow?.loadFile(path.join(__dirname, '../public/index.html'));
-                } catch (error: any) {
-                    console.error("Erro ao trocar o código por um token:", error);
+                        // Salva a sessão em memória
+                        authService.saveSession();
+
+                        // Carrega a interface principal
+                        mainWindow?.loadFile(path.join(__dirname, '../public/index.html'));
+
+
+                        // Envia as informações do token para o processo de renderização
+                        mainWindow?.webContents.once('did-finish-load', () => {
+                            mainWindow?.webContents.send('token-info', tokenInfo);
+                        });
+                    } else {
+                        console.error("Token inválido. Encerrando a aplicação.");
+                        app.quit();
+                    }
+                } catch (error) {
+                    console.error("Erro durante o processo de autenticação:", error);
                 }
             }
         }
@@ -75,4 +80,37 @@ app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
         createWindow();
     }
+});
+
+// Lógica de logout
+ipcMain.on('logout', async (event) => {
+    console.log('Usuário solicitou logout.');
+    const idToken = authService.getIdToken(); // Obtenha o id_token armazenado
+    // Limpa a sessão em memória
+    authService.clearSession();
+
+    // Limpa os cookies da sessão
+    try {
+        const session = mainWindow?.webContents.session;
+        if (session) {
+            const cookies = await session.cookies.get({});
+            for (const cookie of cookies) {
+                const cookieUrl = `http${cookie.secure ? 's' : ''}://${cookie.domain}${cookie.path}`;
+                await session.cookies.remove(cookieUrl, cookie.name);
+            }
+            console.log('Cookies limpos com sucesso.');
+        }
+    } catch (error) {
+        console.error('Erro ao limpar os cookies:', error);
+    }
+    // Redireciona para o endpoint de logout do Keycloak
+    const logoutUrl = authService.getLogoutUrl(idToken!);
+    console.log('Redirecionando para:', logoutUrl);
+    mainWindow?.loadURL(logoutUrl);
+
+    // Monitora o carregamento da página de logout
+    mainWindow?.webContents.once('did-finish-load', () => {
+        console.log('Logout concluído. Redirecionando para a tela de login...');
+        mainWindow?.loadURL(authService.getLoginUrl());
+    });
 });
