@@ -17,6 +17,10 @@ Certifique-se de ter as seguintes ferramentas instaladas:
 - [Node.js](https://nodejs.org/) (versão LTS recomendada)
 - [Yarn](https://yarnpkg.com/) ou npm
 
+## Demostração
+
+![Demonstração da Aplicação](repository_content/aplicacao_gif.gif)
+
 ## Instalação
 
 1. Clone o repositório:
