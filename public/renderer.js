@@ -1,4 +1,5 @@
-window.electron.ipcRenderer.on('token-info', (event, tokenInfo) => {
+window.electron.ipcRenderer.invoke('get-token-info').then((tokenInfo) => {
+  // Exibe as informações na nova página
   document.getElementById('username').textContent =
     tokenInfo.username || 'Não disponível';
   document.getElementById('roles').textContent =

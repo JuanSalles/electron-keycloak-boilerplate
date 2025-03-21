@@ -52,10 +52,6 @@ function createWindow() {
                         mainWindow?.loadFile(path.join(__dirname, '../public/index.html'));
 
 
-                        // Envia as informações do token para o processo de renderização
-                        mainWindow?.webContents.once('did-finish-load', () => {
-                            mainWindow?.webContents.send('token-info', tokenInfo);
-                        });
                     } else {
                         console.error("Token inválido. Encerrando a aplicação.");
                         app.quit();
@@ -80,6 +76,10 @@ app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
         createWindow();
     }
+});
+
+ipcMain.handle('get-token-info', async () => {
+    return authService.getTokenInfo();
 });
 
 // Lógica de logout

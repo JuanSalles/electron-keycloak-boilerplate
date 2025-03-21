@@ -5,6 +5,7 @@ contextBridge.exposeInMainWorld('electron', {
     log: (message: string) => console.log(message),
     ipcRenderer: {
         on: (channel: string, listener: Electron.IpcRendererEventListener) => ipcRenderer.on(channel, listener),
-        send: (channel: string, data: any) => ipcRenderer.send(channel, data)
+        send: (channel: string, data: any) => ipcRenderer.send(channel, data),
+        invoke: (channel: string, data: any) => ipcRenderer.invoke(channel, data)
     }
 });

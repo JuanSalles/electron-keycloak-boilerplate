@@ -36,6 +36,7 @@ class AuthService {
     public getLogoutUrl(idToken: string): string {
         return `${this.keycloakUrl}/logout?id_token_hint=${idToken}`;
     }
+
     // Troca o código de autorização por um token de acesso
     public async exchangeCodeForToken(code: string): Promise<void> {
         try {
