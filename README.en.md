@@ -21,10 +21,9 @@ Make sure you have the following tools installed:
 
 1. Clone the repository:
 
-   ```bash
-   git clone https://github.com/JuanSalles/electron-keycloak-boilerplate.git
-   cd electron-keycloak-boilerplate
-   ```
+    ```markdown
+    Use this repository as a template by clicking the "Use this template" button on GitHub.
+    ```
 
 2. Install dependencies:
 
@@ -34,26 +33,31 @@ Make sure you have the following tools installed:
    npm install
    ```
 
-3. Create the `.env` file in the project root, using the `example.env` file as a base.
 
+3. Setup:
+    ```markdown
+    Create the `.env` file in the project root, using the `example.env` file as a base.
+    ```
 ## Usage
 
 1. Configure Keycloak in the appropriate configuration file.
-2. Start the development environment:
 
-   ```bash
-   yarn start
-   # or
-   npm start
-   ```
-
-3. Build for production:
+2. Build:
 
    ```bash
    yarn build
    # or
    npm run build
    ```
+
+3. Start the development environment:
+
+   ```bash
+   yarn start
+   # or
+   npm start
+    ```
+   
 
 ## Project Structure
 
